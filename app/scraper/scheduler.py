@@ -10,7 +10,7 @@ from app.state import state_manager, utc_iso_now
 from app.api.sse import sse_manager
 from app.api.routes_status import set_scan_trigger
 from app.scraper.engine import ScraperEngine
-from app.scraper.appraiser import appraise_post
+from app.scraper.appraiser import appraise_post, appraise_posts_batch
 from app.discord.notifier import dispatch_post
 
 class ScraperScheduler:
@@ -113,8 +113,8 @@ class ScraperScheduler:
             try:
                 # Scrape group
                 scraped_posts = self._engine.scrape_group(grp, max_scrolls=2)
-                for raw_post in scraped_posts:
-                    self._process_post(raw_post)
+                # Process all scraped posts in batch
+                self._process_posts_batch(scraped_posts)
 
                 # Update group's last_scraped_at
                 conn.execute("UPDATE monitored_groups SET last_scraped_at = CURRENT_TIMESTAMP WHERE id = ?", (grp["id"],))
@@ -138,74 +138,85 @@ class ScraperScheduler:
         sse_manager.publish_threadsafe("status", state_manager.to_dict())
         state_manager.add_log("INFO", "Chu kỳ quét hoàn tất thành công.", "scheduler")
 
-    def _process_post(self, raw_post: dict):
-        post_id = raw_post.get("post_id")
-        if not post_id:
+    def _process_posts_batch(self, scraped_posts: List[dict]):
+        if not scraped_posts:
             return
 
         conn = get_connection()
-        # Deduplication check
-        existing = conn.execute("SELECT 1 FROM posts WHERE post_id = ?", (post_id,)).fetchone()
-        if existing:
+        new_posts = []
+        for raw_post in scraped_posts:
+            post_id = raw_post.get("post_id")
+            if not post_id:
+                continue
+
+            existing = conn.execute("SELECT 1 FROM posts WHERE post_id = ?", (post_id,)).fetchone()
+            if existing:
+                continue
+
+            # Insert raw post into SQLite
+            media_json = json.dumps(raw_post.get("media_urls", []), ensure_ascii=False)
+            conn.execute("""
+            INSERT INTO posts (post_id, group_name, group_url, author_name, author_url, post_url, created_time, content, media_urls)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                post_id,
+                raw_post.get("group_name", ""),
+                raw_post.get("group_url", ""),
+                raw_post.get("author_name", ""),
+                raw_post.get("author_url", ""),
+                raw_post.get("post_url", ""),
+                raw_post.get("created_time", ""),
+                raw_post.get("content", ""),
+                media_json
+            ))
+            new_posts.append(raw_post)
+
+        if not new_posts:
             return
 
-        # Insert raw post into SQLite
-        media_json = json.dumps(raw_post.get("media_urls", []), ensure_ascii=False)
-        conn.execute("""
-        INSERT INTO posts (post_id, group_name, group_url, author_name, author_url, post_url, created_time, content, media_urls)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            post_id,
-            raw_post.get("group_name", ""),
-            raw_post.get("group_url", ""),
-            raw_post.get("author_name", ""),
-            raw_post.get("author_url", ""),
-            raw_post.get("post_url", ""),
-            raw_post.get("created_time", ""),
-            raw_post.get("content", ""),
-            media_json
-        ))
         conn.commit()
 
-        # Appraise post via Gemini / Regex
-        enriched = appraise_post(raw_post)
+        # Batched appraisal using Gemini / Regex (drastically reduces RPD usage)
+        enriched_posts = appraise_posts_batch(new_posts, batch_size=6)
 
-        state = state_manager.get_state()
-        state_manager.update(
-            total_posts=state.total_posts + 1,
-            today_posts=state.today_posts + 1
-        )
-
-        # Handle Deal
-        if enriched.get("is_deal"):
-            state_manager.update(total_deals=state.total_deals + 1)
-            deal_data = {
-                "post_id": post_id,
-                "product_name": enriched.get("model", "Màn hình PC"),
-                "deal_price": enriched.get("deal_price", 0),
-                "market_price": enriched.get("market_price", 0),
-                "discount_pct": enriched.get("discount_pct", 0.0),
-                "dealer_buy_price": enriched.get("dealer_buy_price", 0),
-                "profit": enriched.get("profit", 0),
-                "author_name": enriched.get("author_name", ""),
-                "is_dealer": bool(enriched.get("is_dealer", 0)),
-                "thumbnail_url": enriched.get("thumbnail_url", ""),
-                "created_time": enriched.get("created_time", "Vừa xong"),
-                "post_url": enriched.get("post_url", ""),
-                "channel_keys": ["deal_2" if enriched.get("is_dealer") else "deal_1"]
-            }
-            sse_manager.publish_threadsafe("deal", deal_data)
-            state_manager.add_log(
-                "INFO",
-                f"🔥 KÈO THƠM PHÁT HIỆN: {deal_data['product_name']} ({deal_data['discount_pct']}% off) bởi {deal_data['author_name']}",
-                "appraiser"
+        for enriched in enriched_posts:
+            post_id = enriched.get("post_id")
+            state = state_manager.get_state()
+            state_manager.update(
+                total_posts=state.total_posts + 1,
+                today_posts=state.today_posts + 1
             )
 
-        elif enriched.get("post_type") == "BUY":
-            state_manager.update(total_buys=state.total_buys + 1)
+            # Handle Deal
+            if enriched.get("is_deal"):
+                state_manager.update(total_deals=state.total_deals + 1)
+                deal_data = {
+                    "post_id": post_id,
+                    "product_name": enriched.get("model", "Màn hình PC"),
+                    "deal_price": enriched.get("deal_price", 0),
+                    "market_price": enriched.get("market_price", 0),
+                    "discount_pct": enriched.get("discount_pct", 0.0),
+                    "dealer_buy_price": enriched.get("dealer_buy_price", 0),
+                    "profit": enriched.get("profit", 0),
+                    "author_name": enriched.get("author_name", ""),
+                    "is_dealer": bool(enriched.get("is_dealer", 0)),
+                    "thumbnail_url": enriched.get("thumbnail_url", ""),
+                    "created_time": enriched.get("created_time", "Vừa xong"),
+                    "post_url": enriched.get("post_url", ""),
+                    "channel_keys": ["deal_2" if enriched.get("is_dealer") else "deal_1"]
+                }
+                sse_manager.publish_threadsafe("deal", deal_data)
+                state_manager.add_log(
+                    "INFO",
+                    f"🔥 KÈO THƠM PHÁT HIỆN: {deal_data['product_name']} ({deal_data['discount_pct']}% off) bởi {deal_data['author_name']}",
+                    "appraiser"
+                )
 
-        # Dispatch to Discord
-        dispatch_post(enriched)
+            elif enriched.get("post_type") == "BUY":
+                state_manager.update(total_buys=state.total_buys + 1)
+
+            # Dispatch to Discord
+            dispatch_post(enriched)
 
 # Singleton scheduler
 scraper_scheduler = ScraperScheduler()

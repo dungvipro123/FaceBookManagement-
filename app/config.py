@@ -33,7 +33,7 @@ CONFIG_METADATA = {
     },
     "gemini_model": {
         "type": str,
-        "default": "gemini-3.5-flash",
+        "default": "gemini-3.1-flash-lite",
         "requires_restart": False,
     },
     "lan_access_enabled": {

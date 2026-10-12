@@ -24,3 +24,7 @@ facebook_posts.db
 test-results/
 playwright-report/
 ms-playwright/
+
+# PyInstaller build outputs
+build/
+dist/

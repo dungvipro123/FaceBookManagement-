@@ -152,11 +152,14 @@ function applyState(state) {
     if (state.today_posts !== undefined) setStat("stat-today", state.today_posts);
     if (state.active_groups_count !== undefined) setStat("stat-groups", state.active_groups_count);
 
-    // Update pause/resume button text
+    // Update pause/resume button text & icon
     const pauseBtn = document.getElementById("btn-pause");
     if (pauseBtn) {
-        pauseBtn.textContent = state.is_paused ? t("resume_scan") : t("pause_scan");
-        pauseBtn.className = state.is_paused ? "btn btn-primary" : "btn btn-warning";
+        const isPaused = state.is_paused;
+        pauseBtn.innerHTML = isPaused
+            ? `<svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> <span>${t("resume_scan")}</span>`
+            : `<svg class="icon" viewBox="0 0 24 24"><rect width="4" height="16" x="6" y="4" rx="1"/><rect width="4" height="16" x="14" y="4" rx="1"/></svg> <span>${t("pause_scan")}</span>`;
+        pauseBtn.className = isPaused ? "btn btn-primary" : "btn btn-warning";
     }
 }
 
@@ -177,6 +180,8 @@ function updateProgress(prog) {
     }
 }
 
+const FALLBACK_THUMB = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='8' fill='%230f172a' stroke='%23334155' stroke-width='2'/%3E%3Cpath d='M28 66l14-16 10 11 12-14 16 19H28z' fill='%230284c7' opacity='0.35'/%3E%3Ccircle cx='40' cy='36' r='6' fill='%2338bdf8' opacity='0.6'/%3E%3C/svg%3E";
+
 function prependDeal(deal) {
     const list = document.getElementById("deals-list");
     if (!list) return;
@@ -190,19 +195,19 @@ function prependDeal(deal) {
     const profitStr = "+" + (deal.profit || 0).toLocaleString("vi-VN") + " đ";
 
     item.innerHTML = `
-        <img class="deal-thumb" src="${deal.thumbnail_url || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%231e293b%22 width=%22100%22 height=%22100%22/><text fill=%22%2364748b%22 font-size=%2220%22 x=%2225%22 y=%2255%22>IMG</text></svg>'}" alt="Thumb" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%231e293b%22 width=%22100%22 height=%22100%22/><text fill=%22%2364748b%22 font-size=%2220%22 x=%2225%22 y=%2255%22>IMG</text></svg>'">
+        <img class="deal-thumb" src="${deal.thumbnail_url || FALLBACK_THUMB}" alt="Thumb" onerror="this.src='${FALLBACK_THUMB}'">
         <div class="deal-content">
             <div class="deal-header">
                 <span class="deal-title">${deal.product_name}</span>
                 <span class="deal-badge ${badgeClass}">${badgeText}</span>
             </div>
             <div class="deal-meta">
-                <span>👤 ${deal.author_name}</span> • <span>${deal.created_time || 'Vừa xong'}</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><svg class="icon icon-xs icon-muted" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${deal.author_name}</span> • <span style="display:inline-flex;align-items:center;gap:4px;"><svg class="icon icon-xs icon-muted" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${deal.created_time || 'Vừa xong'}</span>
             </div>
             <div class="deal-prices">
-                <span class="price-deal">💰 ${priceStr}</span>
-                <span class="price-profit">📈 Lãi ${profitStr} (${deal.discount_pct}%)</span>
-                <a href="${deal.post_url}" target="_blank" style="margin-left:auto;color:#06B6D4;text-decoration:none;font-weight:600;">Xem bài ↗</a>
+                <span class="price-deal" style="display:inline-flex;align-items:center;gap:4px;"><svg class="icon icon-xs icon-cyan" viewBox="0 0 24 24"><path d="m20.59 13.41-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" x2="7.01" y1="7" y2="7"/></svg> ${priceStr}</span>
+                <span class="price-profit" style="display:inline-flex;align-items:center;gap:4px;"><svg class="icon icon-xs icon-emerald" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> Lãi ${profitStr} (${deal.discount_pct}%)</span>
+                <a href="${deal.post_url}" target="_blank" style="margin-left:auto;color:#06B6D4;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><span>Xem bài</span><svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg></a>
             </div>
         </div>
     `;
@@ -257,10 +262,15 @@ async function fetchGroups() {
                     <td style="padding:12px;"><a href="${g.url}" target="_blank" style="color:#06B6D4;text-decoration:none;">${g.url.slice(0, 38)}...</a></td>
                     <td style="padding:12px;text-align:center;"><span style="padding:2px 8px;border-radius:999px;background:rgba(255,255,255,0.1);">${g.priority}</span></td>
                     <td style="padding:12px;text-align:center;">
-                        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px;" onclick="toggleGroup(${g.id})">${g.is_active ? '✅ Bật' : '⏸️ Tắt'}</button>
+                        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px;display:inline-flex;align-items:center;gap:4px;" onclick="toggleGroup(${g.id})">
+                            ${g.is_active ? '<svg class="icon icon-xs icon-emerald" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> <span>Bật</span>' : '<svg class="icon icon-xs icon-muted" viewBox="0 0 24 24"><rect width="4" height="16" x="6" y="4" rx="1"/><rect width="4" height="16" x="14" y="4" rx="1"/></svg> <span>Tắt</span>'}
+                        </button>
                     </td>
                     <td style="padding:12px;text-align:center;">
-                        <button class="btn btn-danger" style="padding:4px 10px;font-size:12px;" onclick="deleteGroup(${g.id})">Xóa</button>
+                        <button class="btn btn-danger" style="padding:4px 10px;font-size:12px;display:inline-flex;align-items:center;gap:4px;" onclick="deleteGroup(${g.id})">
+                            <svg class="icon icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            <span>Xóa</span>
+                        </button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -297,7 +307,10 @@ async function fetchChannels() {
                 card.style.marginBottom = "16px";
                 card.innerHTML = `
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                        <h3 style="font-size:16px;">${c.name} (${c.channel_key})</h3>
+                        <h3 style="font-size:16px;display:flex;align-items:center;gap:8px;">
+                            <svg class="icon icon-sm icon-cyan" viewBox="0 0 24 24"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+                            <span>${c.name} (${c.channel_key})</span>
+                        </h3>
                         <label class="toggle-switch">
                             <span class="switch"><input type="checkbox" id="chan-${c.channel_key}-enabled" ${c.is_enabled ? 'checked' : ''}><span class="slider"></span></span>
                         </label>
@@ -317,8 +330,14 @@ async function fetchChannels() {
                         </div>
                     </div>
                     <div style="display:flex;gap:10px;margin-top:10px;">
-                        <button class="btn btn-primary" onclick="saveChannel('${c.channel_key}')">Lưu Kênh</button>
-                        <button class="btn btn-outline" onclick="testChannel('${c.channel_key}')">Test Webhook</button>
+                        <button class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;" onclick="saveChannel('${c.channel_key}')">
+                            <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            <span>Lưu Kênh</span>
+                        </button>
+                        <button class="btn btn-outline" style="display:inline-flex;align-items:center;gap:6px;" onclick="testChannel('${c.channel_key}')">
+                            <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                            <span>Test Webhook</span>
+                        </button>
                     </div>
                 `;
                 container.appendChild(card);

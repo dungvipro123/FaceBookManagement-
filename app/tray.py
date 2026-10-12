@@ -82,20 +82,20 @@ class SystemTrayApp:
 
     def _build_menu(self) -> Menu:
         return Menu(
-            item("📊 Mở Dashboard", self.open_dashboard, default=True),
-            item("⚡ Quét Ngay", self.trigger_scan),
+            item("Mở Dashboard", self.open_dashboard, default=True),
+            item("Quét Ngay", self.trigger_scan),
             item(
-                lambda text: "▶️ Tiếp Tục Quét" if state_manager.get_state().is_paused else "⏸️ Tạm Dừng Quét",
+                lambda text: "Tiếp Tục Quét" if state_manager.get_state().is_paused else "Tạm Dừng Quét",
                 self.toggle_pause
             ),
             Menu.SEPARATOR,
             item(
-                "🚀 Khởi Động Cùng Windows",
+                "Khởi Động Cùng Windows",
                 self.toggle_autostart,
                 checked=lambda item: get_setting("autostart", False)
             ),
             Menu.SEPARATOR,
-            item("❌ Thoát", self.quit_app)
+            item("Thoát Ứng Dụng", self.quit_app)
         )
 
     def _status_monitor_loop(self):

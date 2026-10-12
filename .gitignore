@@ -15,6 +15,9 @@ cookies.json
 
 # Local database & logs
 facebook_posts.db
+*.db
+*.db-wal
+*.db-shm
 *.log
 
 # Playwright

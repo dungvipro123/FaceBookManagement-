@@ -1,0 +1,23 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Facebook cookies & sensitive credentials
+cookies.json
+.env
+.env.local
+
+# Local database & logs
+facebook_posts.db
+*.log
+
+# Playwright
+test-results/
+playwright-report/
+ms-playwright/

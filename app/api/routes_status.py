@@ -117,7 +117,7 @@ async def test_quota():
     import time
     
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    model = get_setting("gemini_model", "gemini-3.5-flash")
+    model = get_setting("gemini_model", "gemini-3.1-flash-lite")
     
     if not api_key:
         state_manager.record_gemini_latency(0.0, "network_error")
@@ -165,7 +165,31 @@ async def test_quota():
                 "success": True,
                 "data": {
                     "status": "model_not_found",
-                    "message": f"Không tìm thấy model '{model}' (HTTP 404)"
+                    "message": f"Không tìm thấy model '{model}' (HTTP 404). Hãy đổi sang 'gemini-3.1-flash-lite' hoặc 'gemini-2.0-flash'."
+                }
+            }
+        elif resp.status_code in (400, 403):
+            err_details = ""
+            try:
+                err_data = resp.json().get("error", {})
+                err_details = err_data.get("message", "")
+                if "API_KEY_INVALID" in str(err_data) or "API key not valid" in err_details:
+                    state_manager.record_gemini_latency(latency_ms, "invalid_key")
+                    return {
+                        "success": True,
+                        "data": {
+                            "status": "invalid_key",
+                            "message": "GEMINI_API_KEY không hợp lệ hoặc chưa được nhập đúng (API_KEY_INVALID). Vui lòng cập nhật API Key từ Google AI Studio vào tab Cài Đặt Hệ Thống."
+                        }
+                    }
+            except Exception:
+                pass
+            state_manager.record_gemini_latency(latency_ms, "network_error")
+            return {
+                "success": True,
+                "data": {
+                    "status": "network_error",
+                    "message": f"Gemini API từ chối ({resp.status_code}): {err_details or resp.text[:120]}"
                 }
             }
         else:

@@ -166,7 +166,7 @@ def init_db() -> None:
         default_settings = [
             ("scan_interval_minutes", "15"),
             ("headless", "true"),
-            ("gemini_model", "gemini-3.5-flash"),
+            ("gemini_model", "gemini-3.1-flash-lite"),
             ("lan_access_enabled", "false"),
             ("web_port", "8080"),
             ("autostart", "false"),

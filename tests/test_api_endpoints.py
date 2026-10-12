@@ -1,4 +1,6 @@
 import pytest
+import os
+from pathlib import Path
 from starlette.testclient import TestClient
 from app.api.server import create_app
 from app.db import init_db
@@ -6,8 +8,14 @@ from app.db import init_db
 @pytest.fixture(scope="module")
 def client():
     init_db()
+    env_path = Path(".env")
+    original_env = env_path.read_text(encoding="utf-8") if env_path.exists() else None
+    
     app = create_app()
-    return TestClient(app)
+    yield TestClient(app)
+    
+    if original_env is not None:
+        env_path.write_text(original_env, encoding="utf-8")
 
 def test_health_endpoint(client):
     resp = client.get("/api/health")
@@ -62,7 +70,7 @@ def test_test_quota_always_returns_200(client):
     data = resp.json()
     assert data["success"] is True
     assert "status" in data["data"]
-    assert data["data"]["status"] in ("ok", "quota_exceeded", "model_not_found", "network_error")
+    assert data["data"]["status"] in ("ok", "quota_exceeded", "model_not_found", "network_error", "invalid_key")
 
 def test_group_crud_and_validation(client):
     # Invalid URL regex

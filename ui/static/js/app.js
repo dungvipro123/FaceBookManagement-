@@ -98,13 +98,46 @@ function connectSSE() {
     };
 }
 
+function formatLocalTime(isoStr) {
+    if (!isoStr) return "";
+    try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) {
+            return (isoStr.split("T")[1] || "").slice(0, 8);
+        }
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        const ss = String(d.getSeconds()).padStart(2, "0");
+        return `${hh}:${mm}:${ss}`;
+    } catch {
+        return (isoStr.split("T")[1] || "").slice(0, 8);
+    }
+}
+
+function formatDealTime(timeStr) {
+    if (!timeStr) return "Vừa xong";
+    try {
+        if (timeStr.includes("T") || (timeStr.includes("-") && timeStr.includes(":"))) {
+            const d = new Date(timeStr);
+            if (!isNaN(d.getTime())) {
+                const hh = String(d.getHours()).padStart(2, "0");
+                const mm = String(d.getMinutes()).padStart(2, "0");
+                const dd = String(d.getDate()).padStart(2, "0");
+                const mo = String(d.getMonth() + 1).padStart(2, "0");
+                return `${hh}:${mm} ${dd}/${mo}`;
+            }
+        }
+    } catch {}
+    return timeStr;
+}
+
 function appendLog(log) {
     const term = document.getElementById("terminal-logs");
     if (!term) return;
 
     const row = document.createElement("div");
     row.className = "log-row";
-    const time = (log.timestamp || "").split("T")[1]?.slice(0, 8) || "";
+    const time = formatLocalTime(log.timestamp);
     row.innerHTML = `
         <span class="log-time">[${time}]</span>
         <span class="log-level ${log.level}">${log.level}</span>
@@ -202,7 +235,7 @@ function prependDeal(deal) {
                 <span class="deal-badge ${badgeClass}">${badgeText}</span>
             </div>
             <div class="deal-meta">
-                <span style="display:inline-flex;align-items:center;gap:4px;"><svg class="icon icon-xs icon-muted" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${deal.author_name}</span> • <span style="display:inline-flex;align-items:center;gap:4px;"><svg class="icon icon-xs icon-muted" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${deal.created_time || 'Vừa xong'}</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><svg class="icon icon-xs icon-muted" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${deal.author_name}</span> • <span style="display:inline-flex;align-items:center;gap:4px;"><svg class="icon icon-xs icon-muted" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${formatDealTime(deal.created_time)}</span>
             </div>
             <div class="deal-prices">
                 <span class="price-deal" style="display:inline-flex;align-items:center;gap:4px;"><svg class="icon icon-xs icon-cyan" viewBox="0 0 24 24"><path d="m20.59 13.41-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" x2="7.01" y1="7" y2="7"/></svg> ${priceStr}</span>

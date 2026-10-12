@@ -150,10 +150,10 @@ def init_db() -> None:
     cursor.execute("SELECT COUNT(*) FROM channel_configs;")
     if cursor.fetchone()[0] == 0:
         default_channels = [
-            ("deal_1", "Kèo Người Bán Riêng", "", 1, 15.0, "", 1),
-            ("deal_2", "Kèo Thợ / Cửa Hàng", "", 1, 20.0, "", 1),
-            ("buy", "Khách Cần Mua", "", 1, 0.0, "", 1),
-            ("log", "Nhật Ký & Toàn Bộ Bài", "", 1, 0.0, "", 0),
+            ("deal_1", "Kèo Người Bán Riêng", os.getenv("DISCORD_DEAL_WEBHOOK_URL", ""), 1, 15.0, "", 1),
+            ("deal_2", "Kèo Thợ / Cửa Hàng", os.getenv("DISCORD_DEAL_2_WEBHOOK_URL", ""), 1, 20.0, "", 1),
+            ("buy", "Khách Cần Mua", os.getenv("DISCORD_BUY_WEBHOOK_URL", ""), 1, 0.0, "", 1),
+            ("log", "Nhật Ký & Toàn Bộ Bài", os.getenv("DISCORD_LOG_WEBHOOK_URL", ""), 1, 0.0, "", 0),
         ]
         cursor.executemany("""
         INSERT OR IGNORE INTO channel_configs (channel_key, name, webhook_url, is_enabled, min_discount, mention_tag, show_images)

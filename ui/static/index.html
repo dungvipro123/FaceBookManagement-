@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FB Monitor Hunter v2.0 - Command Center</title>
+    <meta name="description" content="Hệ thống săn kèo Facebook tự động & định giá AI chuyên sâu">
+    <link rel="stylesheet" href="/css/style.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "/vendor/three.module.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <!-- Background 3D Canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-icon">⚡</div>
+                <div>
+                    <h1 data-i18n="app_title">FB Monitor Hunter v2.0</h1>
+                    <p data-i18n="tagline">Hệ thống săn kèo Facebook & định giá thông minh</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div id="health-badge" class="health-badge amber">
+                    <span class="health-dot"></span>
+                    <span id="health-text" data-i18n="status_idle">Đang kết nối...</span>
+                </div>
+                <button id="btn-lang" class="btn btn-outline" style="padding:6px 12px;font-size:12px;">VI</button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="tab-overview">
+                <span>📊</span> <span data-i18n="tab_overview">Tổng Quan</span>
+            </button>
+            <button class="tab-btn" data-tab="tab-groups">
+                <span>👥</span> <span data-i18n="tab_groups">Nhóm Theo Dõi</span>
+            </button>
+            <button class="tab-btn" data-tab="tab-channels">
+                <span>💬</span> <span data-i18n="tab_channels">Kênh Discord</span>
+            </button>
+            <button class="tab-btn" data-tab="tab-settings">
+                <span>⚙️</span> <span data-i18n="tab_settings">Cài Đặt Hệ Thống</span>
+            </button>
+        </nav>
+
+        <!-- TAB 1: OVERVIEW -->
+        <main id="tab-overview" class="tab-pane active">
+            <div class="grid-overview">
+                <!-- Left: 3D Core Hero & Actions -->
+                <div class="card core-card">
+                    <h2 class="stat-label">STATUS CORE</h2>
+                    <div class="canvas-container">
+                        <canvas id="core-canvas"></canvas>
+                    </div>
+                    <div id="core-status-title" class="core-status-title">KHỞI ĐỘNG</div>
+                    <div id="core-status-desc" class="core-status-desc">Hệ thống đang đồng bộ...</div>
+
+                    <div class="action-buttons">
+                        <button id="btn-scan" class="btn btn-primary">
+                            <span>⚡</span> <span data-i18n="scan_now">Quét Ngay</span>
+                        </button>
+                        <button id="btn-pause" class="btn btn-warning">
+                            <span>⏸️</span> <span data-i18n="pause_scan">Tạm Dừng</span>
+                        </button>
+                        <button id="btn-test-quota" class="btn btn-outline">
+                            <span>🧪</span> <span data-i18n="test_quota">Kiểm Tra AI</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Stats & Deals Stream -->
+                <div>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <span class="stat-label" data-i18n="stat_total_posts">TỔNG BÀI VIẾT</span>
+                            <span id="stat-posts" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label" data-i18n="stat_total_deals">KÈO THƠM BẮN</span>
+                            <span id="stat-deals" class="stat-value" style="color:#10B981;">0</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label" data-i18n="stat_today_posts">BÀI CÀO HÔM NAY</span>
+                            <span id="stat-today" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label" data-i18n="stat_active_groups">NHÓM ĐANG BẬT</span>
+                            <span id="stat-groups" class="stat-value">0</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2 style="font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                            <span>🔥</span> <span data-i18n="recent_deals">Kèo Thơm Mới Nhất</span>
+                        </h2>
+                        <div id="deals-list" class="deals-container">
+                            <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:24px;">
+                                Chưa có kèo thơm nào trong phiên này...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal Realtime Log -->
+            <div class="terminal-card">
+                <div class="terminal-header">
+                    <span style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;">
+                        <span>💻</span> <span data-i18n="live_logs">Nhật Ký Thời Gian Thực (SSE)</span>
+                    </span>
+                    <div style="display:flex;align-items:center;gap:14px;font-size:12px;">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="checkbox" id="chk-autoscroll" checked> <span data-i18n="auto_scroll">Tự cuộn</span>
+                        </label>
+                        <button id="btn-clear-logs" class="btn btn-outline" style="padding:4px 8px;font-size:11px;" data-i18n="clear_logs">Xóa log</button>
+                    </div>
+                </div>
+                <div id="terminal-logs" class="terminal-body"></div>
+            </div>
+        </main>
+
+        <!-- TAB 2: MONITORED GROUPS -->
+        <section id="tab-groups" class="tab-pane">
+            <div class="card" style="margin-bottom:24px;">
+                <h2 style="font-size:16px;margin-bottom:16px;">➕ Thêm Nhóm Facebook Mới</h2>
+                <form id="form-add-group" style="display:grid;grid-template-columns:1fr 2fr 100px auto;gap:12px;align-items:flex-end;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">Tên Nhóm</label>
+                        <input type="text" id="group-name" class="form-control" placeholder="Màn Hình Hà Nội" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">URL Nhóm Facebook (Chỉ chấp nhận facebook.com/groups/...)</label>
+                        <input type="url" id="group-url" class="form-control" placeholder="https://www.facebook.com/groups/1004107450379879/" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">Ưu Tiên (1-5)</label>
+                        <input type="number" id="group-priority" class="form-control" min="1" max="5" value="1" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="height:42px;">Thêm</button>
+                </form>
+            </div>
+
+            <div class="card" style="overflow-x:auto;">
+                <h2 style="font-size:16px;margin-bottom:16px;">📋 Danh Sách Nhóm Đang Theo Dõi</h2>
+                <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                    <thead>
+                        <tr style="border-bottom:1px solid var(--border-subtle);text-align:left;color:var(--text-muted);">
+                            <th style="padding:12px;">Tên Nhóm</th>
+                            <th style="padding:12px;">Đường Dẫn (URL)</th>
+                            <th style="padding:12px;text-align:center;">Ưu Tiên</th>
+                            <th style="padding:12px;text-align:center;">Trạng Thái</th>
+                            <th style="padding:12px;text-align:center;">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groups-tbody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- TAB 3: DISCORD CHANNELS -->
+        <section id="tab-channels" class="tab-pane">
+            <h2 style="font-size:18px;margin-bottom:8px;">📢 Cấu Hình 4 Kênh Discord Webhook</h2>
+            <p style="color:var(--text-secondary);font-size:13px;margin-bottom:20px;">
+                Mỗi bài viết thỏa điều kiện kèo được định tuyến riêng vào Kèo Người Dùng (deal_1) hoặc Kèo Thợ Xả (deal_2).
+            </p>
+            <div id="channels-container"></div>
+        </section>
+
+        <!-- TAB 4: SYSTEM SETTINGS -->
+        <section id="tab-settings" class="tab-pane">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                <!-- System Config -->
+                <div class="card">
+                    <h2 style="font-size:16px;margin-bottom:16px;">⚙️ Tham Số Hoạt Động</h2>
+                    <div class="form-group">
+                        <label class="form-label">Chu kỳ quét tự động (Phút, tối thiểu 10m)</label>
+                        <input type="number" id="set-interval" class="form-control" min="10" max="1440" value="15">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Model Gemini Thẩm Định Giá</label>
+                        <input type="text" id="set-model" class="form-control" value="gemini-3.5-flash">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cổng Web Dashboard (web_port, cần khởi động lại)</label>
+                        <input type="number" id="set-port" class="form-control" min="1024" max="65535" value="8080">
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0;">
+                        <div>
+                            <div style="font-weight:600;font-size:14px;">Chế Độ Trình Duyệt Không Đầu (Headless)</div>
+                            <div style="font-size:12px;color:var(--text-muted);">Ẩn cửa sổ Playwright khi cào dữ liệu</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="set-headless" checked><span class="slider"></span></label>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0;">
+                        <div>
+                            <div style="font-weight:600;font-size:14px;">Cho Phép Mạng LAN (lan_access_enabled)</div>
+                            <div style="font-size:12px;color:var(--text-muted);">Bật truy cập từ điện thoại / máy tính khác qua Wi-Fi</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="set-lan"><span class="slider"></span></label>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0;">
+                        <div>
+                            <div style="font-weight:600;font-size:14px;">Tự Động Khởi Động Cùng Windows (Autostart)</div>
+                            <div style="font-size:12px;color:var(--text-muted);">Tự chạy ngầm khi mở máy tính</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="set-autostart"><span class="slider"></span></label>
+                    </div>
+                    <div style="display:flex;gap:12px;margin-top:20px;">
+                        <button id="btn-save-settings" class="btn btn-primary" data-i18n="save_settings">Lưu Cài Đặt</button>
+                        <button id="btn-restart-server" class="btn btn-outline" data-i18n="restart_server">Khởi Động Lại Server</button>
+                    </div>
+                </div>
+
+                <!-- Secrets & Auth -->
+                <div class="card">
+                    <h2 style="font-size:16px;margin-bottom:16px;">🔒 Khóa Bí Mật & Mạng LAN</h2>
+                    <div class="form-group">
+                        <label class="form-label">GEMINI_API_KEY</label>
+                        <input type="password" id="sec-gemini" class="form-control" placeholder="AIzaSy...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">DISCORD_BOT_TOKEN (Tùy chọn)</label>
+                        <input type="password" id="sec-discord-token" class="form-control" placeholder="Bot token...">
+                    </div>
+                    <button id="btn-save-secrets" class="btn btn-primary" style="margin-bottom:24px;" data-i18n="save_secrets">Lưu Khóa Bí Mật</button>
+
+                    <h2 style="font-size:16px;margin-bottom:8px;padding-top:16px;border-top:1px solid var(--border-subtle);">🔑 Quản Lý Mã PIN Mạng LAN</h2>
+                    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">
+                        Mã PIN dùng để xác thực khi truy cập Web Dashboard từ các thiết bị khác trong mạng LAN.
+                    </p>
+                    <button id="btn-rotate-pin" class="btn btn-warning" data-i18n="rotate_pin">🔄 Đổi Mã PIN Ngẫu Nhiên Mới</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Main Module Application Script -->
+    <script type="module" src="/js/app.js"></script>
+</body>
+</html>

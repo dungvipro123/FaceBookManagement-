@@ -210,8 +210,15 @@ def main():
     parser.add_argument("--channels", action="store_true", help="Xem cấu hình output hiện tại của 4 kênh Discord")
     parser.add_argument("--add-group", nargs=2, metavar=("NAME", "URL"), help="Thêm nhóm mới: --add-group 'Tên Nhóm' 'https://facebook.com/groups/...'")
     parser.add_argument("--toggle-group", type=int, metavar="ID", help="Bật/Tắt theo dõi nhóm theo ID")
+    parser.add_argument("--app", action="store_true", help="Khởi động FB Monitor Hunter v2.0 (System Tray + 3D Dashboard)")
+    parser.add_argument("--dashboard", action="store_true", help="Khởi động FB Monitor Hunter v2.0")
 
     args = parser.parse_args()
+
+    if args.app or args.dashboard:
+        from app.supervisor import AppSupervisor
+        AppSupervisor().run()
+        return
 
     database.init_db()
 
@@ -284,8 +291,14 @@ def main():
         console.print("5. [bold cyan]Xuất dữ liệu ra file Excel (CSV) và JSON[/bold cyan]")
         console.print("6. [bold magenta]Gửi thử thông báo mẫu qua Discord Webhook[/bold magenta]")
         console.print("7. [bold red]Bật chế độ săn kèo tự động liên tục 24/7[/bold red] (Quét định kỳ)")
+        console.print("8. [bold green]Khởi động FB Monitor Hunter v2.0 (System Tray + 3D Dashboard)[/bold green]")
         console.print("0. Thoát")
-        choice = input("Vui lòng chọn (1/2/3/4/5/6/7/0): ").strip()
+        choice = input("Vui lòng chọn (1/2/3/4/5/6/7/8/0): ").strip()
+
+        if choice == "8":
+            from app.supervisor import AppSupervisor
+            AppSupervisor().run()
+            break
 
         if choice == "1":
             run_scraper()
